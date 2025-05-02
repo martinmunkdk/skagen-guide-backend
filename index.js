@@ -8,6 +8,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Logging middleware
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.url}`);
   next();
@@ -61,6 +62,12 @@ app.post("/api/generate-guide", async (req, res) => {
     });
 
     const result = await response.json();
+
+    if (!response.ok) {
+      console.error("💥 OpenAI-fejl:", result);
+      return res.status(500).json({ error: "Fejl fra OpenAI: " + (result?.error?.message || "Ukendt fejl") });
+    }
+
     const generatedGuide = result.choices?.[0]?.message?.content || "Intet svar fra OpenAI";
     res.json({ guide: generatedGuide });
   } catch (error) {
