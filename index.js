@@ -1,7 +1,6 @@
 const express = require("express");
 const fetch = require("node-fetch");
 const { JSDOM } = require("jsdom");
-const { Configuration, OpenAIApi } = require("openai");
 const cors = require("cors");
 require("dotenv").config();
 
@@ -9,7 +8,6 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Logging middleware (ekstra debug)
 app.use((req, res, next) => {
   console.log(`[${req.method}] ${req.url}`);
   next();
@@ -41,27 +39,29 @@ app.post("/api/generate-guide", async (req, res) => {
 
     const combinedText = `Information fra lokale sider:\n\n${toppenText}\n\n${enjoyText}`;
 
-    const configuration = new Configuration({
-      apiKey: process.env.OPENAI_API_KEY,
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "Du er en lokal rejseekspert, der laver engagerende og nyttige rejseguider.",
+          },
+          {
+            role: "user",
+            content: `Lav en rejseguide til ${destination} baseret på dette input:\n\n${combinedText}`,
+          },
+        ],
+      }),
     });
-    const openai = new OpenAIApi(configuration);
 
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Du er en lokal rejseekspert, der laver engagerende og nyttige rejseguider.",
-        },
-        {
-          role: "user",
-          content: `Lav en rejseguide til ${destination} baseret på dette input:\n\n${combinedText}`,
-        },
-      ],
-    });
-
-    const generatedGuide = completion.data.choices[0].message.content;
+    const result = await response.json();
+    const generatedGuide = result.choices?.[0]?.message?.content || "Intet svar fra OpenAI";
     res.json({ guide: generatedGuide });
   } catch (error) {
     console.error("💥 Fejl i /generate-guide:", error);
