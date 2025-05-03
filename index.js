@@ -39,14 +39,16 @@ app.post("/api/generate-guide", async (req, res) => {
 
     const combinedText = `Information fra lokale sider:\n\n${toppenText}\n\n${enjoyText}`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "HTTP-Referer": "https://skagen-guide-next.vercel.app", // valgfri
+        "X-Title": "Skagen Guide Webapp" // valgfri
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: "mistral/mistral-7b-instruct", // kan ændres senere
         messages: [
           {
             role: "system",
@@ -63,11 +65,11 @@ app.post("/api/generate-guide", async (req, res) => {
     const result = await response.json();
 
     if (!response.ok) {
-      console.error("💥 OpenAI-fejl:", result);
-      return res.status(500).json({ error: "Fejl fra OpenAI: " + (result?.error?.message || "Ukendt fejl") });
+      console.error("💥 OpenRouter-fejl:", result);
+      return res.status(500).json({ error: "Fejl fra OpenRouter: " + (result?.error?.message || "Ukendt fejl") });
     }
 
-    const generatedGuide = result.choices?.[0]?.message?.content || "Intet svar fra OpenAI";
+    const generatedGuide = result.choices?.[0]?.message?.content || "Intet svar fra modellen";
     res.json({ guide: generatedGuide });
   } catch (error) {
     console.error("💥 Fejl i /generate-guide:", error);
