@@ -39,16 +39,14 @@ app.post("/api/generate-guide", async (req, res) => {
 
     const combinedText = `Information fra lokale sider:\n\n${toppenText}\n\n${enjoyText}`;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "HTTP-Referer": "https://skagen-guide-next.vercel.app", // valgfri
-        "X-Title": "Skagen Guide Webapp" // valgfri
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3-8b-instruct", // kan ændres senere
+        model: "llama3-8b-8192", // alternativt fx "mixtral-8x7b-32768"
         messages: [
           {
             role: "system",
@@ -65,11 +63,11 @@ app.post("/api/generate-guide", async (req, res) => {
     const result = await response.json();
 
     if (!response.ok) {
-      console.error("💥 OpenRouter-fejl:", result);
-      return res.status(500).json({ error: "Fejl fra OpenRouter: " + (result?.error?.message || "Ukendt fejl") });
+      console.error("💥 Groq-fejl:", result);
+      return res.status(500).json({ error: "Fejl fra Groq: " + (result?.error?.message || "Ukendt fejl") });
     }
 
-    const generatedGuide = result.choices?.[0]?.message?.content || "Intet svar fra modellen";
+    const generatedGuide = result.choices?.[0]?.message?.content || "Intet svar fra Groq-modellen";
     res.json({ guide: generatedGuide });
   } catch (error) {
     console.error("💥 Fejl i /generate-guide:", error);
