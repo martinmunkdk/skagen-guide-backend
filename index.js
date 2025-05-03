@@ -48,7 +48,7 @@ app.post("/api/generate-guide", async (req, res) => {
         "X-Title": "Skagen Guide Webapp" // valgfri
       },
       body: JSON.stringify({
-        model: "mistral/mistral-7b-instruct", // kan ændres senere
+        model: "meta-llama/llama-3-8b-instruct", // kan ændres senere
         messages: [
           {
             role: "system",
