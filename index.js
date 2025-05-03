@@ -46,7 +46,7 @@ app.post("/api/generate-guide", async (req, res) => {
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama3-8b-8192", // alternativt fx "mixtral-8x7b-32768"
+        model: "llama3-8b-8192",
         messages: [
           {
             role: "system",
@@ -64,7 +64,7 @@ app.post("/api/generate-guide", async (req, res) => {
 
     if (!response.ok) {
       console.error("💥 Groq-fejl:", result);
-      return res.status(500).json({ error: "Fejl fra Groq: " + (result?.error?.message || "Ukendt fejl") });
+      return res.status(500).json({ error: result?.error?.message || "Ukendt fejl" });
     }
 
     const generatedGuide = result.choices?.[0]?.message?.content || "Intet svar fra Groq-modellen";
@@ -72,6 +72,44 @@ app.post("/api/generate-guide", async (req, res) => {
   } catch (error) {
     console.error("💥 Fejl i /generate-guide:", error);
     res.status(500).json({ error: "Noget gik galt med genereringen." });
+  }
+});
+
+app.get("/api/news", async (req, res) => {
+  const sources = [
+    {
+      name: "SkagenNyt",
+      url: "https://www.skagennyt.dk/",
+      selector: ".post-title a",
+    },
+    {
+      name: "SkagenAvis",
+      url: "https://www.skagenavis.dk/",
+      selector: ".jeg_post_title a",
+    },
+  ];
+
+  try {
+    const allArticles = [];
+
+    for (const source of sources) {
+      const html = await (await fetch(source.url)).text();
+      const dom = new JSDOM(html);
+      const links = [...dom.window.document.querySelectorAll(source.selector)]
+        .map((el) => ({
+          title: el.textContent?.trim(),
+          link: el.href.startsWith("http") ? el.href : `${source.url}${el.getAttribute("href")}`,
+        }))
+        .filter((a) => a.title && a.link)
+        .slice(0, 5); // max 5 artikler per kilde
+
+      allArticles.push(...links);
+    }
+
+    res.json({ articles: allArticles });
+  } catch (err) {
+    console.error("💥 Fejl ved scraping af nyheder:", err);
+    res.status(500).json({ error: "Kunne ikke hente nyheder" });
   }
 });
 
